@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# VS Code: se ignora todo salvo launch.json (configuraciones de depuración de la práctica 0)
+**/.vscode/*
+!**/.vscode/launch.json

@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "1 · Servidor",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/servidor_persona.py",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "2 · Cliente",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/cliente_persona.py",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "3 · Deserializar a mano",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/deserializar_a_mano.py",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        }
+    ]
+}
