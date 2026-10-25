@@ -256,30 +256,60 @@ Ahora tendría que deducirlo él mirando la edad.
 
 ## Ejemplo 3 · Supervisor con watchdog
 
-Salida de referencia con 3 dispositivos: uno sano, uno que se va (Ctrl + C) y uno colgado:
+Montaje: supervisor en un terminal, dispositivos en otros terminales y uno más en depuración con un punto de
+interrupción en la línea 16 (`sendall`) para simular un equipo colgado.
+
+**Dispositivos sanos.** Cada uno aparece con su puerto efímero y el número de hilos sube uno por dispositivo:
 
 ```
---- 18:04:31 · 3 dispositivos · 5 hilos ---
-  127.0.0.1:40036       OK            silencio   0.5 s   recibidos     5
-  127.0.0.1:40038       OK            silencio   0.5 s   recibidos     5
-  127.0.0.1:40052       OK            silencio   0.5 s   recibidos     5
---- 18:04:33 · 3 dispositivos · 4 hilos ---
-  127.0.0.1:40036       OK            silencio   0.5 s   recibidos     9
-  127.0.0.1:40038       DESCONECTADO  silencio   2.0 s   recibidos     6
-  127.0.0.1:40052       SIN DATOS     silencio   2.0 s   recibidos     6
---- 18:04:37 · 3 dispositivos · 4 hilos ---
-  127.0.0.1:40052       EXPULSADO     silencio   6.0 s   recibidos     6
---- 18:04:38 · 3 dispositivos · 3 hilos ---
+--- 20:48:11 · 2 dispositivos · 4 hilos ---
+  127.0.0.1:59221       OK            silencio   0.2 s   recibidos    20   retardo    0.2 ms
+  127.0.0.1:56080       OK            silencio   0.4 s   recibidos    12   retardo    0.2 ms
+--- 20:48:12 · 3 dispositivos · 5 hilos ---
+  127.0.0.1:59221       OK            silencio   0.2 s   recibidos    22   retardo    0.2 ms
+  127.0.0.1:56080       OK            silencio   0.4 s   recibidos    14   retardo    0.1 ms
+  127.0.0.1:60884       OK            silencio   0.4 s   recibidos     2   retardo    0.1 ms
 ```
 
-✏️ Paso 16: al continuar el dispositivo expulsado muestra `El supervisor ha cerrado la conexión` (o el error de
-conexión que aparezca: `_______________`).
+**Dispositivo colgado.** Se detuvo en el punto de interrupción antes de enviar nada (`recibidos 0`). El watchdog lo
+marcó SIN DATOS y, pasados 5 s, EXPULSADO:
+
+```
+--- 20:49:55 · 1 dispositivos · 3 hilos ---
+  127.0.0.1:63844       EXPULSADO     silencio  52.0 s   recibidos     0   retardo      — ms
+...
+--- 20:50:12 · 1 dispositivos · 3 hilos ---
+  127.0.0.1:63844       EXPULSADO     silencio  69.0 s   recibidos     0   retardo      — ms
+--- 20:50:13 · 1 dispositivos · 2 hilos ---      ← continúo el dispositivo: envía 1 mensaje y su hilo termina
+  127.0.0.1:63844       EXPULSADO     silencio   0.8 s   recibidos     1   retardo    0.2 ms
+...
+--- 20:50:23 · 0 dispositivos · 2 hilos ---      ← a los 10 s (OLVIDAR_TRAS) desaparece de la tabla
+```
+
+**Hallazgo en Windows.** Tras la expulsión el número de hilos **no bajó** de 3 a 2, como predice el enunciado.
+El `shutdown(SHUT_RDWR)` de la línea 91 no despertó en Windows al hilo bloqueado en `recv`: el hilo `disp-63844`
+siguió esperando más de un minuto, hasta que el dispositivo volvió a enviar (20:50:13). Solo entonces el hilo vio la
+conexión cerrada y terminó. En Linux `shutdown` sí despierta al `recv` al momento. Una forma de forzarlo en los dos
+sistemas sería cerrar también el socket (`d.sock.close()`) desde el watchdog.
+
+**Paso 16.** Al continuar el dispositivo expulsado, su terminal muestra:
+
+```
+Conectado al supervisor desde 127.0.0.1:63844
+El supervisor ha cerrado la conexión
+```
+
+Al relanzarlo aparecería con un puerto efímero nuevo, como un dispositivo distinto.
 
 **18. ¿Cómo cambia el número de hilos en los pasos 14 y 15? ¿Qué hilos son?**
+
+> hilos = 2 + número de dispositivos conectados
+
 - Base: **2** hilos, el principal (`MainThread`, que hace de watchdog) y el `aceptador`.
-- Por cada dispositivo, **+1** hilo `disp-<puerto>`. Con 4 dispositivos son 6.
-- Paso 15: el que se va con Ctrl + C cierra la conexión, su `recv` devuelve 0 y su hilo termina (**−1**). El colgado
-  mantiene su hilo bloqueado en `recv` hasta que el watchdog lo expulsa con `shutdown`, y entonces termina (**−1**).
+- Por cada dispositivo, **+1** hilo `disp-<puerto>`. En mi tabla: 2 dispositivos → 4 hilos, 3 dispositivos → 5 hilos.
+- El que se va con Ctrl + C cierra la conexión, su `recv` devuelve 0 y su hilo termina (**−1**).
+- El colgado mantiene su hilo bloqueado en `recv`. En teoría termina al expulsarlo con `shutdown` (**−1**), pero en
+  mi Windows solo terminó cuando el dispositivo volvió a enviar (ver hallazgo arriba).
 
 **19. ¿Por qué un hilo por dispositivo? ¿Qué pasaría con uno solo que hiciera `recv` por turnos?**
 Porque `recv` bloquea. Con un solo hilo por turnos, al llegar al dispositivo colgado se quedaría bloqueado en su
@@ -313,6 +343,9 @@ Un **watchdog**. Hay dos formas:
 ---
 
 ## Experimentos rápidos
+
+> Repiten ideas ya comprobadas en vivo durante la práctica (los errores 1 y 2 me salieron en la práctica 0). Se dejan
+> explicados para referencia.
 
 | # | Qué se hizo | Qué se ve | Causa |
 |---|---|---|---|
