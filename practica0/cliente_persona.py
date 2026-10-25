@@ -33,7 +33,7 @@ class PersonaClient:
     """Cliente TCP para el servidor de la práctica 0."""
 
     MESSAGE_TYPE_PERSONA = 1
-    PERSONA_FORMAT = ">BIf"
+    PERSONA_FORMAT = ">BIf" # > El primero pesa mas, el cliente lee datos correctamente, con < el cliente lee datos al reves
     PERSONA_SIZE = struct.calcsize(PERSONA_FORMAT)
 
     def __init__(self, host: str = "127.0.0.1", port: int = 50000) -> None:
