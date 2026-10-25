@@ -7,12 +7,11 @@ HOST = "127.0.0.1"
 PORT = 50000
 PROCESADO = 0.0
 
-
 def main():
     with socket.create_connection((HOST, PORT)) as sock:
         print(f"Conectado a {HOST}:{PORT}")
         while True:
-            datos = sock.recv(1024)
+            datos = sock.recv(1024) #Pide hasta 1024 bytes y muesstra cuntos le llegan en cada llamada.
             if not datos:
                 print("Fin: el servidor cerró la conexión")
                 return

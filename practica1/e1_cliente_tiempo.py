@@ -6,7 +6,7 @@ import time
 
 HOST = "127.0.0.1"
 PORT = 50000
-PROCESADO = 0.0  # segundos que «tarda» el programa con cada dato
+PROCESADO = 0.0  # segundos que «tarda» el programa con cada dato. Entre mas pequeño, mas rapido se leen los datos.
 
 
 def recv_exactly(sock, size):

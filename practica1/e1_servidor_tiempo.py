@@ -12,12 +12,14 @@ PERIODO = 0.5  # segundos entre mensajes
 def atender(conexion):
     """Envía la hora al cliente cada PERIODO segundos hasta que se desconecte."""
     enviados = 0
+    siguiente = time.monotonic()
     while True:
         conexion.sendall(struct.pack(">d", time.time()))
         enviados += 1
         if enviados % 10 == 0:
             print(f"{enviados} mensajes enviados")
-        time.sleep(PERIODO)
+        siguiente += PERIODO  # CAMBIA: sustituye a time.sleep(PERIODO)
+        time.sleep(max(0, siguiente - time.monotonic())) # NUEVA: duerme solo lo que falta
 
 
 def main():
@@ -26,7 +28,7 @@ def main():
             escucha.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         escucha.bind((HOST, PORT))
         escucha.listen(1)
-        while True:
+        while True: #linea de 29-37 cuando un cliente se va este servidor no se cierra, vuelve a esperar al sigueinte. Asi no hay que reenlazarlo otra vez.
             print(f"Esperando un cliente en {HOST}:{PORT} ...")
             conexion, direccion = escucha.accept()
             print(f"Cliente conectado desde {direccion[0]}:{direccion[1]}")
